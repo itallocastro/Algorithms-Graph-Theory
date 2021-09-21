@@ -35,7 +35,6 @@ int * read_adjacency(string input) {
 void help() {
     cout << "-o <arquivo> Redireciona a saída para um arquivo específico" << endl;
     cout << "-f <arquivo> Indica o arquivo que contém o grafo de entrada" << endl;
-    cout << "-s Mostra a solução (em ordem crescente)" << endl;
     cout << "-i Vértice inicial" << endl;
     cout << "-l Vértice final" << endl;
     return;
