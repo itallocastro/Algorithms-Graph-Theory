@@ -4,6 +4,20 @@
 
 using namespace std;
 
+typedef struct st
+{
+    int vertex;
+    int key;
+} st;
+
+struct comparator
+{
+    bool operator()(st arg1, st arg2)
+    {
+        return arg1.key > arg2.key;
+    }
+};
+
 class graph
 {
 public:
@@ -40,76 +54,129 @@ public:
     void create_edge(int vertex1, int vertex2, int cost)
     {
         adj_matrix[vertex1][vertex2] = cost != 0 ? cost : 1;
+        adj_matrix[vertex2][vertex1] = cost != 0 ? cost : 1;
     }
 
-    bool bfs(int source, int end, int parent[], int *rgraph)
+    bool is_element_in_pq(priority_queue<st, vector<st>, comparator> pq, int element)
     {
-        bool visited[nvertex + 1];
-        memset(visited, 0, sizeof(visited));
-
-        visited[source] = true;
-        q.push(source);
-        parent[source] = -1;
-
-        while (!q.empty())
+        priority_queue<st, vector<st>, comparator> g = pq;
+        while (!g.empty())
         {
-            int u = q.front();
-            q.pop();
-
-            for (int i = 0; i < nvertex + 1; i++)
-            {
-                if (!visited[i] && rgraph[(u * (nvertex + 1)) + i] != 0)
-                {
-                    parent[i] = u;
-                    if (i == end)
-                    {
-                        return true;
-                    }
-                    visited[i] = 1;
-                    q.push(i);
-                }
-            }
+            if (g.top().vertex == element)
+                return true;
+            g.pop();
         }
         return false;
     }
-    int ford_fulkerson(int s, int t)
+    priority_queue<st, vector<st>, comparator> update_queue(priority_queue<st, vector<st>, comparator> pq, int vertex, int key)
     {
-        int residual_graph[nvertex + 1][nvertex + 1];
-        int u, v;
+        priority_queue<st, vector<st>, comparator> new_pq, g = pq;
 
-        for (u = 0; u < nvertex + 1; u++)
+        while (!g.empty())
         {
-            for (v = 0; v < nvertex + 1; v++)
+            st element = g.top();
+            g.pop();
+            if (element.vertex == vertex)
             {
-                residual_graph[u][v] = adj_matrix[u][v];
+                element.key = key;
+            }
+            new_pq.push(element);
+        }
+        return new_pq;
+    }
+
+    int *prim(int begin)
+    {
+        priority_queue<st, vector<st>, comparator> pq;
+        int key[nvertex + 1], visited[nvertex + 1];
+        int *pred = (int *)malloc(sizeof(int) * (nvertex + 1));
+
+        for (int i = 1; i < nvertex + 1; i++)
+        {
+            st element;
+            key[i] = i == begin ? 0 : INT_MAX;
+            pred[i] = -1;
+            element.key = i == begin ? 0 : INT_MAX;
+            element.vertex = i;
+            pq.push(element);
+        }
+
+        pred[begin] = -1;
+
+        while (!pq.empty())
+        {
+            st u = pq.top();
+            pq.pop();
+
+            for (int i = 1; i < nvertex + 1; i++)
+            {
+                if (adj_matrix[u.vertex][i] != 0)
+                {
+                    int adj_cost = adj_matrix[u.vertex][i];
+                    if (is_element_in_pq(pq, i) && adj_cost < key[i])
+                    {
+                        pred[i] = u.vertex;
+                        key[i] = adj_cost;
+                        pq = update_queue(pq, i, adj_cost);
+                    }
+                }
             }
         }
 
-        int parent[nvertex + 1];
-        int max_flow = 0;
-
-        while (bfs(s, t, parent, &residual_graph[0][0]))
-        {
-            int path_flow = INT_MAX;
-
-            for (v = t; v != s; v = parent[v])
-            {
-                u = parent[v];
-                path_flow = min(path_flow, residual_graph[u][v]);
-            }
-
-            for (v = t; v != s; v = parent[v])
-            {
-                u = parent[v];
-                residual_graph[u][v] -= path_flow;
-                residual_graph[v][u] += path_flow;
-            }
-
-            max_flow += path_flow;
-        }
-        return max_flow;
+        return pred;
     }
 };
+
+void make_tree(int *pred, graph graph, int nvertex, FILE *fw)
+{
+    for (int i = 1; i < nvertex + 1; i++)
+    {
+        for (int j = 1; j < nvertex + 1; j++)
+        {
+
+            if (pred[j] == i)
+            {
+                if (fw == NULL)
+                {
+                    printf("(%d,%d) ", i, j);
+                }
+                else
+                {
+                    fprintf(fw, "(%d,%d) ", i, j);
+                }
+            }
+        }
+    }
+}
+
+void tree_size(int *pred, graph graph, int nvertex, FILE *fw)
+{
+    int size = 0;
+
+    for (int i = 1; i < nvertex + 1; i++)
+    {
+        if (pred[i] != -1)
+        {
+            size += graph.adj_matrix[pred[i]][i];
+        }
+    }
+    if (fw == NULL)
+    {
+        cout << size << endl;
+    }
+    else
+    {
+        fprintf(fw, "%d", size);
+    }
+}
+void print_menu()
+{
+    cout << "-h : mostra o help" << endl;
+    cout << "-o <arquivo> : redireciona a saida para o ‘‘arquivo’’" << endl;
+    cout << "-f <arquivo> : indica o ‘‘arquivo’’ que contém o grafo de entrada" << endl;
+    cout << "-s mostra a solução em ordem crescente" << endl;
+    cout << "-i : vértice inicial (dependendo do algoritmo)" << endl;
+}
 
 int *read_adjacency(string input)
 {
@@ -138,19 +205,12 @@ int *read_adjacency(string input)
     return adjacency;
 }
 
-void print_menu()
-{
-    cout << "-h : mostra o help" << endl;
-    cout << "-o <arquivo> : redireciona a saida para o ‘‘arquivo’’" << endl;
-    cout << "-f <arquivo> : indica o ‘‘arquivo’’ que contém o grafo de entrada" << endl;
-    cout << "-i : vértice inicial (dependendo do algoritmo)" << endl;
-    cout << "-l : vértice final (dependendo do algoritmo)" << endl;
-}
 int main(int argc, char *argv[])
 {
     int vertex, edges, answer;
-    string input, file_name;
-    int begin = -1, end = -1;
+    string input;
+    int begin = -1;
+    bool order = false;
     FILE *fr = NULL, *fw = NULL;
 
     for (int i = 1; i < argc; i++)
@@ -166,23 +226,6 @@ int main(int argc, char *argv[])
             begin = atoi(argv[i + 1]);
 
             if (begin == 0 && strcasecmp(argv[i + 1], "0") != 0)
-            {
-                cout << "Entrada inválida!" << endl;
-                print_menu();
-                return 0;
-            }
-        }
-        else if (strcasecmp(argv[i], "-l") == 0)
-        {
-            if (i + 1 >= argc)
-            {
-                cout << "Entrada inválida!" << endl;
-                print_menu();
-                return 0;
-            }
-            end = atoi(argv[i + 1]);
-
-            if (end == 0 && strcasecmp(argv[i + 1], "0") != 0)
             {
                 cout << "Entrada inválida!" << endl;
                 print_menu();
@@ -213,6 +256,7 @@ int main(int argc, char *argv[])
                 print_menu();
                 return 0;
             }
+            cout << argv[i + 1] << endl;
             fw = fopen(argv[i + 1], "w+");
         }
         else if (strcasecmp(argv[i], "-h") == 0)
@@ -220,16 +264,21 @@ int main(int argc, char *argv[])
             print_menu();
             return 0;
         }
+        else if (strcasecmp(argv[i], "-s") == 0)
+        {
+            order = true;
+        }
     }
 
-    if (begin < 0 || end < 0)
+    if (begin < 0)
     {
-        cout << "Você precisa informar os vértices de início e fim!" << endl;
+        cout << "Você precisa informar o vértice inicial!" << endl;
         return 0;
     }
 
     if (fr == NULL)
     {
+
         cin >> vertex;
         cin >> edges;
 
@@ -245,15 +294,14 @@ int main(int argc, char *argv[])
             free(adjacency);
         }
 
-        answer = graph.ford_fulkerson(begin, end);
-        if (fw != NULL)
+        int *pred = graph.prim(begin);
+        if (order)
         {
-            fprintf(fw, "%d", answer);
-            fclose(fw);
+            make_tree(pred, graph, vertex, fw);
         }
         else
         {
-            cout << answer;
+            tree_size(pred, graph, vertex, fw);
         }
     }
     else
@@ -269,17 +317,16 @@ int main(int argc, char *argv[])
             graph.create_edge(adjacency[0], adjacency[1], adjacency[2]);
             free(adjacency);
         }
+        
         fclose(fr);
-        answer = graph.ford_fulkerson(begin, end);
-
-        if (fw != NULL)
+        int *pred = graph.prim(begin);
+        if (order)
         {
-            fprintf(fw, "%d", answer);
-            fclose(fw);
+            make_tree(pred, graph, vertex, fw);
         }
         else
         {
-            cout << answer;
+            tree_size(pred, graph, vertex, fw);
         }
     }
 }
