@@ -94,24 +94,26 @@ void help() {
     return;
 }
 int main(int argc,char **argv) {
-    int v, e, v1, v2, weight, initial, last = -1;
+    int v, e, v1, v2, weight, initial, last = -1, flag = 0;
     string write;
     ifstream my_input;
+    
     for (int i = 0; i < argc; i++) {
         string arg = (string) argv[i];
         if(arg.find("-h") != string::npos) {
             help();
+            return 0;
         } 
-        if(arg.find("-o") != string::npos) {
+        else if(arg.find("-o") != string::npos) {
             write = (string) argv[++i];
         }
-        if(arg.find("-l") != string::npos) {
+        else if(arg.find("-l") != string::npos) {
             last = atoi(argv[++i]);
         }
-        if(arg.find("-i") != string::npos) {
+        else if(arg.find("-i") != string::npos) {
             initial = atoi(argv[++i]);
         }
-        if(arg.find("-f") != string::npos) {
+        else if(arg.find("-f") != string::npos) {
             string first_line;
             my_input.open(argv[++i]);
             getline(my_input, first_line);
@@ -119,7 +121,14 @@ int main(int argc,char **argv) {
             v = first[0];
             e = first[1];
         }
+        else {
+            if(i > 0) {
+                cout << "Comando inválido!" << endl;
+                return 0;
+            }
+        }
     }
+
     string input;
 
     int adj_matrix[v+1][1000];

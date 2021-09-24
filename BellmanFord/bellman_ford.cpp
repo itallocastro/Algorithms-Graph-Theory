@@ -76,23 +76,29 @@ int main(int argc,char **argv) {
         string arg = (string) argv[i];
         if(arg.find("-h") != string::npos) {
             help();
+            return 0;
         } 
-        if(arg.find("-o") != string::npos) {
+        else if(arg.find("-o") != string::npos) {
             write = (string) argv[++i];
         }
-        if(arg.find("-l") != string::npos) {
+        else if(arg.find("-l") != string::npos) {
             last = atoi(argv[++i]);
         }
-        if(arg.find("-i") != string::npos) {
+        else if(arg.find("-i") != string::npos) {
             initial = atoi(argv[++i]);
         }
-        if(arg.find("-f") != string::npos) {
+        else if(arg.find("-f") != string::npos) {
             string first_line;
             my_input.open(argv[++i]);
             getline(my_input, first_line);
             int *first = read_adjacency(first_line);
             v = first[0];
             e = first[1];
+        } else {
+            if(i > 0) {
+                cout << "Comando inválido!" << endl;
+                return 0;
+            }
         }
     }
     string input;
